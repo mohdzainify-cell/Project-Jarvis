@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+
 import { useJarvisStore } from '@/store/jarvisStore'
 import { useJarvis } from '@/hooks/useJarvis'
 import { useVoice } from '@/hooks/useVoice'
+
 import StatusBar from './StatusBar'
 import ChatPanel from './ChatPanel'
 
@@ -10,7 +12,6 @@ export default function HUD() {
   const {
     showBriefing,
     setShowBriefing,
-    setOnline,
     isListening,
     isSpeaking,
   } = useJarvisStore()
@@ -21,12 +22,13 @@ export default function HUD() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
 
-  // 🔊 FAST INIT
+  // 🚀 FAST STARTUP
   useEffect(() => {
     connect()
 
     const t = setTimeout(() => {
       setShowBriefing(true)
+
       requestAnimationFrame(() => {
         speak('Systems online.')
       })
@@ -50,9 +52,14 @@ export default function HUD() {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (e.key === 'f') toggleFullscreen()
-      if (e.key === 'm') setIsMinimized((v) => !v)
+
+      if (e.key === 'm') {
+        setIsMinimized(v => !v)
+      }
     }
+
     window.addEventListener('keydown', key)
+
     return () => window.removeEventListener('keydown', key)
   }, [])
 
@@ -60,145 +67,320 @@ export default function HUD() {
 
   return (
     <div
-      className="fixed inset-0 overflow-hidden"
+      className="
+        fixed
+        inset-0
+        overflow-hidden
+        bg-black
+        text-cyan-300
+      "
       style={{
         background:
-          'radial-gradient(circle at center, #081421 0%, #02060d 100%)',
+          'radial-gradient(circle at center, #07111d 0%, #01050b 100%)',
         fontFamily: 'Share Tech Mono, monospace',
       }}
     >
-      {/* CONTROLS */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
+      {/* GRID BACKGROUND */}
+      <div
+        className="
+          absolute
+          inset-0
+          opacity-[0.08]
+        "
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(0,212,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(0,212,255,0.15) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* TOP CONTROLS */}
+      <div className="absolute top-5 right-5 z-50 flex gap-3">
         <button onClick={toggleFullscreen} className="hud-btn">
           {isFullscreen ? 'EXIT' : 'FULL'}
         </button>
-        <button onClick={() => setIsMinimized(v => !v)} className="hud-btn">
+
+        <button
+          onClick={() => setIsMinimized(v => !v)}
+          className="hud-btn"
+        >
           {isMinimized ? 'OPEN' : 'MIN'}
         </button>
       </div>
 
+      {/* STATUS */}
       <StatusBar />
 
-      {/* 🧠 MAIN CENTER */}
+      {/* MAIN CENTER */}
       <motion.div
-        className="absolute inset-0 flex flex-col items-center justify-center"
+        className="
+          absolute
+          inset-0
+          flex
+          flex-col
+          items-center
+          justify-center
+        "
         animate={{
-          scale: isMinimized ? 0.35 : 1,
-          y: isMinimized ? 220 : 0,
-          opacity: isMinimized ? 0.7 : 1,
+          scale: isMinimized ? 0.42 : 1,
+          y: isMinimized ? 260 : 0,
+          opacity: isMinimized ? 0.65 : 1,
         }}
-        transition={{ type: 'spring', damping: 20 }}
+        transition={{
+          type: 'spring',
+          stiffness: 120,
+          damping: 18,
+        }}
       >
-        {/* 🔵 JARVIS CORE */}
+        {/* CORE */}
         <JarvisCore active={active} />
 
-        {/* 💬 CHAT BELOW */}
-        <div className="mt-10 w-[500px] max-w-[90vw]">
-          <ChatPanel />
+        {/* CHAT */}
+        <div className="mt-10 w-[560px] max-w-[92vw]">
+          <div
+            className="
+              h-[320px]
+              overflow-hidden
+              rounded-3xl
+              border
+              border-cyan-400/20
+              bg-black/30
+              backdrop-blur-2xl
+              shadow-[0_0_50px_rgba(0,212,255,0.08)]
+            "
+          >
+            <ChatPanel />
+          </div>
         </div>
       </motion.div>
 
+      {/* BRIEFING */}
       <AnimatePresence>
         {showBriefing && (
-          <BriefingPanel onDismiss={() => setShowBriefing(false)} />
+          <BriefingPanel
+            onDismiss={() => setShowBriefing(false)}
+          />
         )}
       </AnimatePresence>
     </div>
   )
 }
 
-// ─────────────────────────
-// 🤖 JARVIS CORE (IRON MAN STYLE)
-// ─────────────────────────
-function JarvisCore({ active }: { active: boolean }) {
-  const rot = useRef(0)
-  const [, force] = useState(0)
+// ─────────────────────────────
+// 🤖 JARVIS CORE
+// ─────────────────────────────
 
-  useEffect(() => {
-    let frame: number
-    const loop = () => {
-      rot.current += active ? 0.02 : 0.008
-      force(n => n + 1)
-      frame = requestAnimationFrame(loop)
-    }
-    frame = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(frame)
-  }, [active])
-
-  const CX = 200
-  const CY = 200
-
+function JarvisCore({
+  active,
+}: {
+  active: boolean
+}) {
   return (
-    <div className="relative">
-      <svg width={400} height={400}>
-        {/* OUTER FAINT RING */}
-        <circle cx={CX} cy={CY} r={150}
-          stroke="#00d4ff" strokeWidth="1"
-          opacity="0.2" fill="none" />
+    <div className="relative flex items-center justify-center">
+      {/* OUTER GLOW */}
+      <div className="absolute w-[420px] h-[420px] rounded-full bg-cyan-400/5 blur-3xl" />
 
-        {/* ROTATING RING */}
-        <g transform={`rotate(${rot.current}, ${CX}, ${CY})`}>
-          <circle cx={CX} cy={CY} r={120}
-            stroke="#00d4ff"
-            strokeWidth="2"
-            strokeDasharray="12 8"
-            fill="none"
-            opacity="0.7"
-          />
-        </g>
+      {/* OUTER RING */}
+      <motion.div
+        className="
+          absolute
+          w-[360px]
+          h-[360px]
+          rounded-full
+          border
+          border-cyan-400/20
+        "
+        animate={{
+          rotate: 360,
+        }}
+        transition={{
+          duration: active ? 8 : 18,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      />
 
-        {/* COUNTER ROTATION */}
-        <g transform={`rotate(${-rot.current * 1.5}, ${CX}, ${CY})`}>
-          <circle cx={CX} cy={CY} r={90}
-            stroke="#00d4ff"
-            strokeWidth="1.5"
-            strokeDasharray="4 6"
-            fill="none"
-            opacity="0.6"
-          />
-        </g>
+      {/* DASHED RING */}
+      <motion.div
+        className="
+          absolute
+          w-[300px]
+          h-[300px]
+          rounded-full
+          border
+          border-dashed
+          border-cyan-400/30
+        "
+        animate={{
+          rotate: -360,
+        }}
+        transition={{
+          duration: active ? 6 : 14,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      />
 
-        {/* CORE */}
-        <motion.circle
-          cx={CX}
-          cy={CY}
-          r={40}
-          fill="#00d4ff"
+      {/* PULSE RING */}
+      <motion.div
+        className="
+          absolute
+          w-[240px]
+          h-[240px]
+          rounded-full
+          border
+          border-cyan-300/40
+        "
+        animate={{
+          scale: active ? [1, 1.03, 1] : 1,
+          opacity: active ? [0.5, 1, 0.5] : 0.4,
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+        }}
+      />
+
+      {/* CORE GLOW */}
+      <motion.div
+        className="
+          absolute
+          w-[140px]
+          h-[140px]
+          rounded-full
+          bg-cyan-400/20
+          blur-2xl
+        "
+        animate={{
+          scale: active
+            ? [1, 1.25, 1]
+            : [1, 1.08, 1],
+        }}
+        transition={{
+          duration: active ? 1.2 : 2.5,
+          repeat: Infinity,
+        }}
+      />
+
+      {/* MAIN CORE */}
+      <motion.div
+        className="
+          relative
+          w-[120px]
+          h-[120px]
+          rounded-full
+          border
+          border-cyan-300/60
+          bg-black/60
+          backdrop-blur-xl
+          flex
+          items-center
+          justify-center
+          shadow-[0_0_60px_rgba(0,212,255,0.35)]
+        "
+        animate={{
+          boxShadow: active
+            ? [
+              '0 0 30px rgba(0,212,255,0.2)',
+              '0 0 80px rgba(0,212,255,0.7)',
+              '0 0 30px rgba(0,212,255,0.2)',
+            ]
+            : '0 0 25px rgba(0,212,255,0.2)',
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+        }}
+      >
+        {/* INNER RINGS */}
+        <div className="absolute inset-3 rounded-full border border-cyan-400/20" />
+
+        <div className="absolute inset-6 rounded-full border border-cyan-400/20" />
+
+        {/* CENTER DOT */}
+        <motion.div
+          className="w-5 h-5 rounded-full bg-cyan-300"
           animate={{
-            scale: active ? [1, 1.3, 1] : 1,
-            opacity: active ? [0.6, 1, 0.6] : 0.5,
+            scale: active
+              ? [1, 1.8, 1]
+              : [1, 1.2, 1],
           }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          style={{ filter: 'blur(2px)' }}
+          transition={{
+            duration: 1,
+            repeat: Infinity,
+          }}
         />
-
-        {/* INNER DOT */}
-        <circle cx={CX} cy={CY} r={10} fill="#00d4ff" />
-      </svg>
+      </motion.div>
     </div>
   )
 }
 
-// ─────────────────────────
-// 🧠 BRIEFING
-// ─────────────────────────
-function BriefingPanel({ onDismiss }: { onDismiss: () => void }) {
+// ─────────────────────────────
+// 🧠 BRIEFING PANEL
+// ─────────────────────────────
+
+function BriefingPanel({
+  onDismiss,
+}: {
+  onDismiss: () => void
+}) {
   return (
     <motion.div
-      className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur"
+      className="
+        fixed
+        inset-0
+        flex
+        items-center
+        justify-center
+        bg-black/70
+        backdrop-blur-md
+        z-50
+      "
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="p-10 border border-cyan-400/30 bg-[#020d1a] text-center">
-        <h2 className="text-cyan-400 text-xl mb-4 tracking-widest">
+      <motion.div
+        initial={{
+          scale: 0.8,
+          opacity: 0,
+        }}
+        animate={{
+          scale: 1,
+          opacity: 1,
+        }}
+        exit={{
+          scale: 0.8,
+          opacity: 0,
+        }}
+        className="
+          p-10
+          rounded-3xl
+          border
+          border-cyan-400/20
+          bg-[#020d1a]
+          text-center
+          shadow-[0_0_50px_rgba(0,212,255,0.15)]
+        "
+      >
+        <h2
+          className="
+            text-cyan-300
+            text-2xl
+            tracking-[0.3em]
+            mb-6
+          "
+        >
           JARVIS ONLINE
         </h2>
 
-        <button onClick={onDismiss} className="hud-btn">
-          Begin
+        <button
+          onClick={onDismiss}
+          className="hud-btn"
+        >
+          BEGIN
         </button>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
