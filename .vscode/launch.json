@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "▶ Start JARVIS",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/start_jarvis.py",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "▶ Backend Only",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+      "args": ["-m", "uvicorn", "jarvis_core:app", "--port", "8765", "--reload"],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal"
+    }
+  ]
+}
